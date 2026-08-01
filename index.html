@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DrowsyGuard — On-Device Driver Alertness Monitor</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0A0E13" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- ===== HEADER ===== -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div class="brand-text">
+          <h1>DrowsyGuard</h1>
+          <p class="tagline">On-device alertness monitor · no wearables, no cloud</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnInstall" class="btn btn-secondary" hidden>Install App</button>
+        <div class="status-pill" id="statusPill">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusLabel">Not started</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== MAIN GRID ===== -->
+    <main class="grid">
+
+      <!-- LEFT: camera + gauge -->
+      <section class="panel camera-panel">
+        <div class="panel-head">
+          <h2>Live Monitor</h2>
+          <div class="panel-actions">
+            <button id="btnStart" class="btn btn-primary">Start Monitoring</button>
+            <button id="btnCalibrate" class="btn btn-ghost" disabled>Calibrate (10s)</button>
+            <button id="btnDemo" class="btn btn-ghost">Run Demo Scenario</button>
+          </div>
+        </div>
+
+        <div class="video-stage">
+          <video id="video" playsinline autoplay muted></video>
+          <canvas id="overlay"></canvas>
+          <div class="stage-badge" id="calibBadge" hidden>Calibrating… stay relaxed, blink naturally</div>
+          <div class="alert-flash" id="alertFlash" hidden></div>
+        </div>
+
+        <div class="metrics-row">
+          <div class="metric">
+            <span class="metric-label">PERCLOS</span>
+            <span class="metric-value" id="mPerclos">0%</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Eye Aspect Ratio</span>
+            <span class="metric-value" id="mEar">–</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Yawn (MAR)</span>
+            <span class="metric-value" id="mMar">–</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Blink rate /min</span>
+            <span class="metric-value" id="mBlink">–</span>
+          </div>
+        </div>
+
+        <div class="gauge-wrap">
+          <div class="gauge-track">
+            <div class="gauge-fill" id="gaugeFill"></div>
+          </div>
+          <div class="gauge-labels">
+            <span>Alert</span>
+            <span>Drowsy</span>
+            <span>Critical</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: sidebar -->
+      <aside class="sidebar">
+
+        <!-- Calibration state -->
+        <div class="card" id="calibCard">
+          <h3>Personal Calibration</h3>
+          <p class="muted" id="calibText">Not calibrated yet. Using research-based default thresholds (EAR 0.25 / PERCLOS 15–30%).</p>
+        </div>
+
+        <!-- Alert log -->
+        <div class="card">
+          <h3>Alert Log</h3>
+          <ul class="log-list" id="logList">
+            <li class="log-empty">No events yet — start monitoring to begin.</li>
+          </ul>
+        </div>
+
+        <!-- Rest stop finder -->
+        <div class="card">
+          <h3>Nearby Rest Stops</h3>
+          <button id="btnFindRest" class="btn btn-secondary btn-block">Find rest stops near me</button>
+          <ul class="rest-list" id="restList"></ul>
+          <p class="muted small" id="restStatus"></p>
+        </div>
+
+        <!-- Emergency contacts -->
+        <div class="card">
+          <h3>Emergency Contacts</h3>
+          <ul class="contact-list" id="contactList"></ul>
+          <div class="contact-row">
+            <input type="text" id="contactName" placeholder="Name" />
+            <input type="tel" id="contactPhone" placeholder="Phone number" />
+          </div>
+          <button id="btnSaveContact" class="btn btn-ghost btn-block">Add contact</button>
+          <button id="btnPingContact" class="btn btn-danger btn-block" disabled>Notify all contacts now</button>
+          <p class="muted small" id="autoNotifyStatus">Add 3+ contacts to enable auto-notify on a critical alert.</p>
+          <p class="muted small">Opens your messaging app pre-addressed to all saved contacts with your live location. You still tap Send in your messaging app — no site can send SMS on your behalf without your final confirmation.</p>
+        </div>
+
+        <!-- Voice + settings -->
+        <div class="card">
+          <h3>Alert Settings</h3>
+          <label class="switch-row">
+            <span>Bilingual voice alerts (EN / TA)</span>
+            <input type="checkbox" id="toggleVoice" checked />
+          </label>
+          <label class="switch-row">
+            <span>Vibration on escalation</span>
+            <input type="checkbox" id="toggleVibrate" checked />
+          </label>
+          <label class="switch-row">
+            <span>Night mode (dim UI + low-light detection boost)</span>
+            <input type="checkbox" id="toggleNight" />
+          </label>
+        </div>
+
+      </aside>
+    </main>
+
+    <!-- ===== SESSION SUMMARY MODAL ===== -->
+    <div class="modal-backdrop" id="summaryBackdrop" hidden>
+      <div class="modal">
+        <h2>Session Summary</h2>
+        <div class="summary-grid" id="summaryGrid"></div>
+        <h3>Timeline</h3>
+        <ul class="log-list" id="summaryTimeline"></ul>
+        <div class="modal-actions">
+          <button id="btnDownloadSummary" class="btn btn-secondary">Download report (.txt)</button>
+          <button id="btnCloseSummary" class="btn btn-primary">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="critical-overlay" id="criticalOverlay" hidden></div>
+
+  <!-- MediaPipe Face Mesh (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+</body>
+</html>
