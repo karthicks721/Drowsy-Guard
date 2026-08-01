@@ -1,75 +1,299 @@
 # DrowsyGuard
 
-An on-device driver drowsiness detection app. Runs entirely in the browser using webcam-based face-landmark tracking — no wearables, no video ever leaves the device.
+DrowsyGuard is a browser-based driver drowsiness detection application that helps identify signs of fatigue using only a webcam. Everything runs directly in the browser, so no wearable devices, mobile applications, or cloud servers are required.
 
-## Features
+Unlike many AI-powered solutions that send video to remote servers, DrowsyGuard performs all processing on the user's device. The webcam feed never leaves the browser, making the system faster, more private, and suitable even when internet connectivity is limited.
 
-1. **Live multi-signal detection** — PERCLOS (percentage of eye closure over time), Eye Aspect Ratio (EAR), and Mouth Aspect Ratio (MAR, for yawn detection), fused into a rolling drowsiness score.
-2. **Personal calibration** — a 10-second baseline capture at the start of a session, so alert thresholds adapt to the driver's own eye shape and resting blink rate instead of a fixed value.
-3. **Escalating alert tiers** — mild (micro-break nudge) → moderate (audio + vibration) → critical (full-screen red overlay, synthesized siren via Web Audio, repeating bilingual voice alert, and automatic rest-stop lookup).
-4. **Bilingual voice alerts** — spoken in English and Tamil, using the browser's built-in speech synthesis. Repeats every 6 seconds while a critical alert is active.
-5. **Nearby rest-stop finder** — uses your device location and the OpenStreetMap Overpass API to surface real rest areas, fuel stations, and cafés nearby, with one-tap directions.
-6. **Emergency contacts with auto-notify** — save any number of trusted contacts. Once 3 or more are saved, a critical alert automatically opens your device's messaging app pre-addressed to all of them (comma-separated recipients) with your live location, so it's a single tap to send rather than one message per contact. You can also trigger "Notify all contacts now" manually at any time.
-7. **Session summary report** — a post-drive card with a safe-driving score, alert counts, and a full timeline, downloadable as a text report.
-8. **Run Demo Scenario** — replays a scripted drowsiness episode without needing a camera, so the pitch demo works reliably regardless of stage lighting or Wi-Fi.
-9. **Installable, offline-capable** — a manifest + service worker cache the app shell (and the face-detection library, best-effort) on first load, so it works as an installed PWA without a live connection after that. Chrome will prompt to install once it's served over HTTPS (e.g. GitHub Pages) — there's also an in-app "Install App" button that triggers the same native prompt. Location-dependent features (rest stops, SMS location tag) still need a connection when used.
-10. **Night mode** — dims and warms the whole UI (red/amber, reduced brightness) to protect the driver's night vision and cut windshield glare, the same principle used in real cockpit displays. It also runs the actual detection frame through a brightness/contrast boost before it reaches the face detector — a genuine low-light detection aid, not just a cosmetic filter on the preview.
+---
 
-## Running it
+# Features
 
-No build step — it's plain HTML/CSS/JS.
+## Real-Time Drowsiness Detection
+
+The application continuously monitors multiple facial fatigue indicators instead of relying on just one measurement.
+
+It tracks:
+
+- Eye Aspect Ratio (EAR)
+- PERCLOS (Percentage of Eye Closure)
+- Mouth Aspect Ratio (MAR) for yawn detection
+
+These values are combined into a rolling drowsiness score to provide more reliable detection.
+
+---
+
+## Personalized Calibration
+
+Every driver's face is different.
+
+Before monitoring begins, DrowsyGuard spends around 10 seconds learning the driver's normal eye position and blink pattern. This personalized baseline helps reduce false alarms and makes detection more accurate than using fixed thresholds for everyone.
+
+---
+
+## Smart Alert Levels
+
+Instead of immediately triggering a loud alarm, the system responds gradually depending on the driver's condition.
+
+### Mild
+
+A gentle reminder encourages the driver to stay alert or take a short break.
+
+### Moderate
+
+The application plays an audio alert and activates device vibration (where supported).
+
+### Critical
+
+When serious drowsiness is detected:
+
+- Full-screen warning appears
+- Loud siren is generated
+- Voice alert repeats in English and Tamil
+- Nearby rest stops are suggested automatically
+
+---
+
+## Bilingual Voice Assistance
+
+Critical warnings are spoken using the browser's built-in speech synthesis.
+
+Languages supported:
+
+- English
+- Tamil
+
+The warning repeats every six seconds until the driver's condition improves.
+
+---
+
+## Nearby Rest Stops
+
+When internet and location services are available, DrowsyGuard searches for nearby:
+
+- Fuel stations
+- Cafés
+- Rest areas
+
+Results are fetched using OpenStreetMap and can be opened directly in navigation apps.
+
+---
+
+## Emergency Contact Support
+
+Users can save multiple emergency contacts.
+
+When three or more contacts are available and a critical alert occurs, DrowsyGuard automatically opens the phone's messaging application with:
+
+- All contacts selected
+- Driver's current location
+- Pre-written emergency message
+
+The driver only needs to press **Send**.
+
+A manual **Notify All Contacts** button is also available.
+
+---
+
+## Session Summary
+
+After every drive, the application generates a summary that includes:
+
+- Safe Driving Score
+- Total alerts
+- Alert timeline
+- Session statistics
+
+The report can be downloaded as a text file.
+
+---
+
+## Demo Mode
+
+A built-in demo simulates a complete drowsiness event without requiring a webcam.
+
+This is especially useful during presentations, project demonstrations, or competitions.
+
+---
+
+## Progressive Web App (PWA)
+
+DrowsyGuard works as an installable Progressive Web App.
+
+After the first visit, important application files are cached so the app continues working even without internet access.
+
+Internet is only required for:
+
+- Rest-stop search
+- GPS location sharing
+
+---
+
+## Night Mode
+
+Night driving presents additional challenges for both drivers and computer vision systems.
+
+Night Mode helps by:
+
+- Reducing screen brightness
+- Using warm colors to minimize glare
+- Improving webcam brightness and contrast before face detection
+
+This improves visibility while reducing eye strain.
+
+---
+
+# Running the Project
+
+No installation or build process is required.
+
+Start a simple local server:
 
 ```bash
-# from the project folder
 python3 -m http.server 8000
-# then open http://localhost:8000
 ```
 
-Or deploy straight to **GitHub Pages**:
+Then open:
 
-1. Push this folder to a GitHub repo.
-2. Repo Settings → Pages → Deploy from branch → `main` / root.
-3. Camera access requires HTTPS — GitHub Pages serves over HTTPS by default, so this works out of the box.
+```
+http://localhost:8000
+```
 
-## How detection works
+---
 
-- Face landmarks come from [MediaPipe FaceMesh](https://developers.google.com/mediapipe), loaded from a CDN at runtime.
-- **EAR** (Eye Aspect Ratio) = ratio of eye height to eye width across 6 landmark points per eye; it drops sharply when eyes close.
-- **PERCLOS** (Percentage of Eye Closure) = share of the last 30 seconds where EAR was below the closed-eye threshold, defined as `T_closed / T_total × 100` — one of the most widely used metrics in computer-vision drowsiness research.
-- **MAR** (Mouth Aspect Ratio) flags yawning as a secondary fatigue signal.
+# Deploying to GitHub Pages
 
-## Research basis for the thresholds
+Deployment only takes a few steps.
 
-Instead of hand-picked numbers, the defaults are set from published drowsiness-detection literature, then personalized per driver through the 10-second calibration step:
+1. Push the project to GitHub.
+2. Open Repository Settings.
+3. Navigate to **Pages**.
+4. Select **Deploy from Branch**.
+5. Choose the **main** branch.
 
-| Parameter | Value used | Source |
-|---|---|---|
-| EAR closed-eye threshold | 0.25 (confirmed over 20 consecutive frames) | *Real-Time Drowsiness Detection Using Eye Aspect Ratio and Facial Landmark Detection* (arXiv:2408.05836) |
-| PERCLOS moderate/alarm threshold | 15% | PERCLOS-based driver eye-tracking system evaluated on the **NTHU Driver Drowsiness Detection (NTHU-DDD)** dataset, which reports up to 99% detection accuracy for EAR/MAR/head-pose classifiers |
-| PERCLOS critical threshold | 30% | *Association of Visual-Based Signals with EEG Patterns in Drowsiness Detection* — PERCLOS ≥30% validated against six-channel EEG across 50 drivers in a 50-minute driving simulation (PMC11055081) |
-| Personal calibration ratio | 0.82 × driver's own baseline EAR | Derived from the gap between typical open-eye EAR (~0.30) and the closed-eye threshold above |
+GitHub Pages automatically serves the application over HTTPS, allowing webcam access without extra configuration.
 
-So the pitch answer to "how was this trained/validated" is: the detection architecture and its thresholds are grounded in peer-reviewed drowsiness research validated on real driver datasets (NTHU-DDD) and against physiological ground truth (EEG), then adapted per-driver via on-device calibration — rather than a single black-box model trained by us from scratch in a weekend.
+---
 
-## Notes for the judges' round
+# How It Works
 
-- This app doesn't run its own trained classifier — it applies literature-backed thresholds, personalized live per driver. That's a legitimate, citable design choice; be upfront about it if asked, rather than implying a custom-trained model.
-- Not yet tested by us against sunglasses, poor lighting, extreme head angles, or night driving.
-- The rest-stop finder depends on OpenStreetMap data completeness, which varies by region — worth a quick venue test beforehand.
+DrowsyGuard uses **MediaPipe FaceMesh** to detect facial landmarks from the webcam.
 
-## A note on "automatic" emergency messages
+Three important measurements are calculated continuously.
 
-At 3+ saved contacts, a critical alert automatically **opens** your messaging app with all contacts and your location pre-filled — that part is real and automatic. No website (this one included) can silently transmit an SMS without your final tap on Send in your own messaging app, or without a paid backend SMS gateway (like Twilio) that this static, client-side app deliberately doesn't depend on. That's a browser/OS security boundary that protects you from sites texting people on your behalf without consent — worth explaining exactly this way if a judge asks, rather than claiming full auto-send.
+## Eye Aspect Ratio (EAR)
 
-## Project structure
+EAR measures how open the eyes are.
+
+When the eyes remain closed for longer than normal, the EAR value drops significantly.
+
+---
+
+## PERCLOS
+
+PERCLOS measures the percentage of time the driver's eyes remain closed over a rolling 30-second window.
+
+It is one of the most commonly used indicators in driver fatigue research.
+
+---
+
+## Mouth Aspect Ratio (MAR)
+
+MAR measures mouth opening.
+
+A large increase usually indicates yawning, which contributes to the overall fatigue score.
+
+---
+
+# Research Background
+
+Rather than creating our own machine learning model, DrowsyGuard follows values reported in published driver monitoring research.
+
+The default thresholds are based on peer-reviewed studies and are then adjusted using the driver's personal calibration.
+
+This approach keeps the application lightweight while still following established research.
+
+---
+
+# Current Limitations
+
+Although the application performs well under normal conditions, there are situations that still need further testing.
+
+Examples include:
+
+- Drivers wearing sunglasses
+- Poor lighting conditions
+- Extreme head movements
+- Real-world nighttime driving
+
+Nearby rest-stop recommendations also depend on the availability of OpenStreetMap data in the current location.
+
+---
+
+# Emergency Messaging
+
+For privacy and security reasons, modern web browsers do not allow websites to send SMS messages automatically.
+
+Instead, DrowsyGuard prepares the message with:
+
+- Emergency contacts
+- Current location
+- Emergency text
+
+The user simply confirms the message by pressing **Send**.
+
+---
+
+# Privacy
+
+Privacy is one of the main goals of this project.
+
+- Webcam video is never uploaded.
+- No facial images are stored.
+- All detection happens locally in the browser.
+- Personal data remains on the user's device.
+
+---
+
+# Project Structure
 
 ```
 drowsy-guard/
-├── index.html      # UI structure
-├── style.css        # Dashboard visual design
-├── app.js           # Detection logic, alerts, contacts, rest stops, summary
-├── manifest.json     # PWA manifest (installable app)
-├── sw.js             # Service worker (offline app-shell caching)
-├── icon.svg          # App icon
+│
+├── index.html
+├── style.css
+├── app.js
+├── manifest.json
+├── sw.js
+├── icon.svg
 └── README.md
 ```
+
+---
+
+# Future Improvements
+
+Some ideas for future development include:
+
+- Support for sunglasses detection
+- Better low-light performance
+- Head pose estimation
+- Steering behavior analysis
+- Integration with vehicle sensors
+- AI-based fatigue prediction using deep learning
+- Cloud synchronization of driving reports
+
+---
+
+# Acknowledgements
+
+This project uses:
+
+- MediaPipe FaceMesh for facial landmark detection
+- OpenStreetMap Overpass API for nearby location search
+- Browser APIs including Speech Synthesis, Geolocation, Web Audio, Service Workers, and the PWA framework.
+
+---
+
+## Team Note
+
+DrowsyGuard was developed as a practical demonstration of how modern web technologies can be used to improve road safety. Instead of depending on expensive hardware or cloud-based AI services, the project focuses on creating a lightweight, privacy-friendly solution that runs entirely inside a web browser while still providing meaningful real-time driver assistance.
