@@ -220,10 +220,8 @@ Although the application performs well under normal conditions, there are situat
 
 Examples include:
 
-- Drivers wearing sunglasses
-- Poor lighting conditions
+- Very Poor lighting conditions
 - Extreme head movements
-- Real-world nighttime driving
 
 Nearby rest-stop recommendations also depend on the availability of OpenStreetMap data in the current location.
 
@@ -274,10 +272,9 @@ drowsy-guard/
 
 Some ideas for future development include:
 
-- Support for sunglasses detection
 - Better low-light performance
-- Head pose estimation
-- Steering behavior analysis
+- Accurate Head pose estimation
+- Steering behavior analysis 
 - Integration with vehicle sensors
 - AI-based fatigue prediction using deep learning
 - Cloud synchronization of driving reports
